@@ -22,7 +22,7 @@ from datetime import datetime
 app = Flask(__name__)
 moment = Moment(app)
 app.config.from_object('config')
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://jbabajohn:jbabaPassword@localhost:5432/fyyur'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -32,11 +32,6 @@ migrate = Migrate(app, db)
 #----------------------------------------------------------------------------#
 # Models.
 #----------------------------------------------------------------------------#
-
-# genre_venue = db.Table('genre_venue',
-#                     db.Column('venue_id', db.Integer, db.ForeignKey('venue.id'), primary_key=True),
-#                     db.Column('genre_id', db.Integer, db.ForeignKey('genre.id'), primary_key=True)
-#             )
 
 show = db.Table('show', 
                 db.Column('venue_id', db.Integer, db.ForeignKey('venue.id'), primary_key=True),
@@ -62,17 +57,17 @@ class Venue(db.Model):
 
 class Artist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String)
-    city = db.Column(db.String(120))
-    state = db.Column(db.String(120))
+    name = db.Column(db.String, nullable=False)
+    city = db.Column(db.String(120), nullable=False)
+    state = db.Column(db.String(120), nullable=False)
     phone = db.Column(db.String(120))
-    genres = db.Column(db.String(120))
+    genres = db.Column(db.String(120), nullable=False)
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
-
-class Genre(db.Model):
-  id = db.Column(db.Integer, primary_key=True)
-  name = db.Column(db.String, nullable=False)
+    shows = db.relationship('Venue', secondary=show, backref=db.backref('artist'))
+    website = db.Column(db.String)
+    seeking_venue = db.Column(db.Boolean, default=False)
+    seeking_description = db.Column(db.String)
   
   
   
