@@ -34,9 +34,10 @@ migrate = Migrate(app, db)
 #----------------------------------------------------------------------------#
 
 show = db.Table('show', 
+                db.Column('show_id', db.Integer, primary_key=True),
                 db.Column('venue_id', db.Integer, db.ForeignKey('venue.id'), primary_key=True),
                 db.Column('artist_id', db.Integer, db.ForeignKey('artist.id'), primary_key=True),
-                db.Column('start_time', db.DateTime, nullable=False, default=datetime.now)
+                db.Column('start_time', db.DateTime, nullable=False)
             )
 
 class Venue(db.Model):
@@ -52,7 +53,7 @@ class Venue(db.Model):
     seeking_talent = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String)
     website = db.Column(db.String)
-    shows = db.relationship('Artist', secondary=show, backref=db.backref('venue'))
+    artists = db.relationship('Artist', secondary=show, backref=db.backref('venues'))
     # TODO: implement any missing fields, as a database migration using Flask-Migrate
 
 class Artist(db.Model):
@@ -64,7 +65,6 @@ class Artist(db.Model):
     genres = db.Column(db.String(120), nullable=False)
     image_link = db.Column(db.String(500))
     facebook_link = db.Column(db.String(120))
-    shows = db.relationship('Venue', secondary=show, backref=db.backref('artist'))
     website = db.Column(db.String)
     seeking_venue = db.Column(db.Boolean, default=False)
     seeking_description = db.Column(db.String)
@@ -240,12 +240,28 @@ def create_venue_form():
 def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
-
-  # on successful db insert, flash success
-  flash('Venue ' + request.form['name'] + ' was successfully listed!')
-  # TODO: on unsuccessful db insert, flash an error instead.
-  # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
-  # see: http://flask.pocoo.org/docs/1.0/patterns/flashing/
+  name = request.form.get('name')
+  city = request.form.get('city')
+  state = request.form.get('state')
+  address = request.form.get('address')
+  phone = request.form.get('phone')
+  genres = request.form.get('genres')
+  facebook_link = request.form.get('facebook_link')
+  image_link = request.form.get('image_link')
+  website = request.form.get('website_link')
+  seeking_talent = request.form.get('seeking_talent')
+  seeking_description = request.form.get('seeking_description')
+  
+  try:
+    venue = Venue(name=name, city=city, state=state, address=address, phone=phone, genres=genres, facebook_link=facebook_link, image_link=image_link,website=website, seeking_talent=seeking_talent, seeking_description=seeking_description)
+    db.session.add(venue)
+    db.session.commit()
+    flash('Venue ' + request.form['name'] + ' was successfully listed!')  
+  except:
+    db.session.rollback()
+    flash('An error occurred. Venue ' + name + ' could not be listed.')
+  finally:
+    db.session.close()
   return render_template('pages/home.html')
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
