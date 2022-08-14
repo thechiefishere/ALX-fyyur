@@ -95,10 +95,20 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/')
 def index():
-  # value_names = db.session.query(Venue.name).all()
-  # # value_names = db.session.query(db.func.lower(Venue.name)).all()
-  # print('value_names', value_names)
-  return render_template('pages/home.html')
+  latest_venues = db.session.query(Venue.name).order_by(Venue.id.desc()).limit(10).all()
+  latest_artist = db.session.query(Artist.name).order_by(Artist.id.desc()).limit(10).all()
+  latest_venues_names = []
+  latest_artist_names = []
+  for venue in latest_venues:
+    latest_venues_names.append(venue[0])
+  for artist in latest_artist:
+    latest_artist_names.append(artist[0])
+  
+  data = {
+    'latest_artist': latest_artist_names,
+    'latest_venues': latest_venues_names
+  }
+  return render_template('pages/home.html', data=data)
 
 
 #  Venues
@@ -202,7 +212,7 @@ def create_venue_submission():
   facebook_link = request.form.get('facebook_link')
   image_link = request.form.get('image_link')
   website = request.form.get('website_link')
-  seeking_talent = request.form.get('seeking_talent')
+  seeking_talent = True if request.form.get('seeking_talent')!=None else False
   seeking_description = request.form.get('seeking_description')
   
   try:
@@ -215,7 +225,7 @@ def create_venue_submission():
     flash('An error occurred. Venue ' + name + ' could not be listed.')
   finally:
     db.session.close()
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -443,7 +453,7 @@ def create_artist_submission():
   facebook_link = request.form.get('facebook_link')
   image_link = request.form.get('image_link')
   website = request.form.get('website_link')
-  seeking_venue = request.form.get('seeking_venue')
+  seeking_venue = True if request.form.get('seeking_venue')!=None else False
   seeking_description = request.form.get('seeking_description')
   
   try:
@@ -457,8 +467,7 @@ def create_artist_submission():
     flash('An error occurred. Artist ' + name + ' could not be listed.')
   finally:
     db.session.close()
-  return render_template('pages/home.html')
-
+  return redirect(url_for('index'))
 
 #  Shows
 #  ----------------------------------------------------------------
@@ -504,7 +513,9 @@ def create_show_submission():
     show.artist_id = artist_id
     show.venue_id = venue_id
     show.start_time = start_time
+    print("before add")
     db.session.add(show)
+    print("before commit")
     db.session.commit()
   except:
     db.session.rollback()
@@ -516,14 +527,13 @@ def create_show_submission():
     flash('Show was successfully listed!')  
   else:
     flash('An error occurred. Show could not be listed.')
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 def get_venue_upcoming_shows(venue):
   upcoming_shows = Show.query.filter_by(venue_id=venue.id).filter(Show.start_time > datetime.now()).all()
   return upcoming_shows
 def get_venue_past_shows(venue):
   past_shows = Show.query.filter_by(venue_id=venue.id).filter(Show.start_time < datetime.now()).all()
-  print("past shows", past_shows)
   return past_shows
 def get_artist_upcoming_shows(artist):
   upcoming_shows = Show.query.filter_by(artist_id=artist.id).filter(Show.start_time > datetime.now()).all()
