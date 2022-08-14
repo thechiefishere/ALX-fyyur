@@ -271,7 +271,7 @@ def search_artists():
   # seach for "A" should return "Guns N Petals", "Matt Quevado", and "The Wild Sax Band".
   # search for "band" should return "The Wild Sax Band".
   search_term = request.form['search_term'].lower().strip()
-  artists_in_search = db.session.query(Artist).filter(db.func.lower(Artist.name).like('%' + search_term + '%')).all()
+  artists_in_search = db.session.query(Artist).filter(db.func.lower(Artist.name).like('%' + search_term + '%') | db.func.lower(Artist.city).like('%' + search_term + '%') | db.func.lower(Artist.state).like('%' + search_term + '%')).all()
   data = []
   for artist in artists_in_search:
     obj = {
