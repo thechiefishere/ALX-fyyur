@@ -147,7 +147,7 @@ def search_venues():
   # seach for Hop should return "The Musical Hop".
   # search for "Music" should return "The Musical Hop" and "Park Square Live Music & Coffee"
   search_term = request.form['search_term'].lower().strip()
-  venues_in_search = db.session.query(Venue).filter(db.func.lower(Venue.name).like('%' + search_term + '%')).all()
+  venues_in_search = db.session.query(Venue).filter(db.func.lower(Venue.name).like('%' + search_term + '%') | db.func.lower(Venue.city).like('%' + search_term + '%') | db.func.lower(Venue.state).like('%' + search_term + '%')).all()
   data = []
   for venue in venues_in_search:
     obj = {
