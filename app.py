@@ -94,8 +94,10 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/')
 def index():
-  venue = Venue.query.all()
-  print("venue", venue)
+  names = db.session.query(Venue.state, Venue.city).all()
+  set_of_names = set(names)
+  print(set_of_names)
+  print(names)
   return render_template('pages/home.html')
 
 
@@ -106,27 +108,27 @@ def index():
 def venues():
   # TODO: replace with real venues data.
   #       num_upcoming_shows should be aggregated based on number of upcoming shows per venue.
-  data=[{
-    "city": "San Francisco",
-    "state": "CA",
-    "venues": [{
-      "id": 1,
-      "name": "The Musical Hop",
-      "num_upcoming_shows": 0,
-    }, {
-      "id": 3,
-      "name": "Park Square Live Music & Coffee",
-      "num_upcoming_shows": 1,
-    }]
-  }, {
-    "city": "New York",
-    "state": "NY",
-    "venues": [{
-      "id": 2,
-      "name": "The Dueling Pianos Bar",
-      "num_upcoming_shows": 0,
-    }]
-  }]
+  data = []
+  unique_cities_and_state = set(db.session.query(Venue.city, Venue.state).all())
+  for value in unique_cities_and_state:
+    obj = {}
+    city = value[0]
+    state = value[1]
+    venues_in_citystate = Venue.query.filter(Venue.city == city and Venue.state == state).all()
+    
+    venues = []
+    for venue in venues_in_citystate:
+      venue_object = {
+        'id': venue.id,
+        'name': venue.name,
+        'num_upcoming_shows': len(get_venue_upcoming_shows(venue))
+      }
+      venues.append(venue_object)
+    obj['city'] = city
+    obj['state'] = state
+    obj['venues'] = venues
+    
+    data.append(obj)
   return render_template('pages/venues.html', areas=data);
 
 @app.route('/venues/search', methods=['POST'])
@@ -138,7 +140,7 @@ def search_venues():
   data = []
   search_term = request.form['search_term'].lower()
   for venue in venues:
-    get_upcoming_shows(venue)
+    # get_upcoming_shows(venue)
     venue_name = venue.name.lower()
     if venue_name.find(search_term) != -1:
       obj = {
@@ -397,19 +399,20 @@ def show_artist(artist_id):
 @app.route('/artists/<int:artist_id>/edit', methods=['GET'])
 def edit_artist(artist_id):
   form = ArtistForm()
-  artist={
-    "id": 4,
-    "name": "Guns N Petals",
-    "genres": ["Rock n Roll"],
-    "city": "San Francisco",
-    "state": "CA",
-    "phone": "326-123-5000",
-    "website": "https://www.gunsnpetalsband.com",
-    "facebook_link": "https://www.facebook.com/GunsNPetals",
-    "seeking_venue": True,
-    "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
-    "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
-  }
+  artist = Artist.query.get(artist_id)
+  # artist={
+  #   "id": 4,
+  #   "name": "Guns N Petals",
+  #   "genres": ["Rock n Roll"],
+  #   "city": "San Francisco",
+  #   "state": "CA",
+  #   "phone": "326-123-5000",
+  #   "website": "https://www.gunsnpetalsband.com",
+  #   "facebook_link": "https://www.facebook.com/GunsNPetals",
+  #   "seeking_venue": True,
+  #   "seeking_description": "Looking for shows to perform at in the San Francisco Bay Area!",
+  #   "image_link": "https://images.unsplash.com/photo-1549213783-8284d0336c4f?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=300&q=80"
+  # }
   # TODO: populate form with fields from artist with ID <artist_id>
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
@@ -539,6 +542,20 @@ def create_show_submission():
   else:
     flash('An error occurred. Show could not be listed.')
   return render_template('pages/home.html')
+
+def get_venue_upcoming_shows(venue):
+  upcoming_shows = Show.query.filter_by(venue_id=venue.id).filter(Show.start_time > datetime.now()).all()
+  return upcoming_shows
+def get_venue_past_shows(venue):
+  upcoming_shows = Show.query.filter_by(venue_id=venue.id).filter(Show.start_time < datetime.now()).all()
+  return upcoming_shows
+def get_artist_upcoming_shows(artist):
+  upcoming_shows = Show.query.filter_by(artist_id=artist.id).filter(Show.start_time > datetime.now()).all()
+  return upcoming_shows
+def get_artist_past_shows(artist):
+  upcoming_shows = Show.query.filter_by(artist_id=artist.id).filter(Show.start_time < datetime.now()).all()
+  return upcoming_shows
+    
 
 @app.errorhandler(404)
 def not_found_error(error):
